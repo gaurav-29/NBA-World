@@ -9,6 +9,7 @@ import androidx.databinding.DataBindingUtil;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
@@ -25,6 +26,7 @@ import com.nextgensoft.nbaworld.R;
 import com.nextgensoft.nbaworld.Retrofit.APIClient;
 import com.nextgensoft.nbaworld.Retrofit.APIInterface;
 import com.nextgensoft.nbaworld.Utils.Internet;
+import com.nextgensoft.nbaworld.Utils.RealPathUtil;
 import com.nextgensoft.nbaworld.databinding.ActivityDetail2Binding;
 
 import java.io.File;
@@ -167,9 +169,12 @@ public class DetailActivity2 extends AppCompatActivity {
     private void punchOut() {
         dialog.show();
         if (Internet.isInternetAvailable(context)) {
-            file = new File(getPath(imagePath)); // see the custom made getPath(Uri uri) method below this api call method.
+
+            String path = RealPathUtil.getRealPath(context,imagePath);
+            file = new File(path); // see the custom made getPath(Uri uri) method below this api call method.
             // Which converts Uri into File.
-            Log.d("FILEPATH", String.valueOf(file));
+
+            Log.d("FILEPATH", path);
 
             RequestBody execId = RequestBody.create(MediaType.parse("text/plain"), "1");
 
@@ -212,6 +217,29 @@ public class DetailActivity2 extends AppCompatActivity {
             Toast.makeText(context, "No Internet Connection", Toast.LENGTH_LONG).show();
             dialog.dismiss();
         }
+    }
+    public Uri pathUri(Uri uri) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            String[] filePathColumn = {MediaStore.MediaColumns.DATA};
+            Cursor cursor = context.getContentResolver().query(
+                    uri,
+                    filePathColumn,
+                    null,
+                    null,
+                    null);
+            if (cursor != null) {
+                if (cursor.moveToFirst()) {
+                    int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+                    String absolutePathOfImage = cursor.getString(columnIndex);
+                    if (absolutePathOfImage != null) {
+                        return Uri.parse(absolutePathOfImage);
+                    }
+                    cursor.close();
+                }
+            }
+        }
+
+        return uri;
     }
 
     public String getPath(Uri uri) {
